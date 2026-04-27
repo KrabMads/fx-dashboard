@@ -1,0 +1,37 @@
+name: Fetch FX Rates
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch EUR/DKK
+        run: |
+          curl -s "https://query1.finance.yahoo.com/v8/finance/chart/EURDKK=X?interval=1d&range=5y" \
+            -H "User-Agent: Mozilla/5.0" -o data/EURDKK.json
+
+      - name: Fetch USD/DKK
+        run: |
+          curl -s "https://query1.finance.yahoo.com/v8/finance/chart/USDDKK=X?interval=1d&range=5y" \
+            -H "User-Agent: Mozilla/5.0" -o data/USDDKK.json
+
+      - name: Fetch SEK/DKK
+        run: |
+          curl -s "https://query1.finance.yahoo.com/v8/finance/chart/SEKDKK=X?interval=1d&range=5y" \
+            -H "User-Agent: Mozilla/5.0" -o data/SEKDKK.json
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git diff --staged --quiet || git commit -m "FX update $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
