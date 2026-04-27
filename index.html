@@ -216,7 +216,7 @@ Chart.register({
       const isUp=d.c>=d.o,col=isUp?'#22c55e':'#ef4444',x=bar.x;
       const yO=yS.getPixelForValue(d.o),yC=yS.getPixelForValue(d.c);
       const yH=yS.getPixelForValue(d.h),yL=yS.getPixelForValue(d.l);
-      const top=Math.min(yO,yC),bot=Math.max(yO,yC),bh=Math.max(bot-top,1.5),hw=Math.max((bar.width||6)/2,2);
+      const top=Math.min(yO,yC),bot=Math.max(yO,yC),bh=Math.max(bot-top,2.5),hw=Math.max((bar.width||6)/2,2);
       ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1;
       ctx.beginPath();ctx.moveTo(x,yH);ctx.lineTo(x,top);ctx.moveTo(x,bot);ctx.lineTo(x,yL);ctx.stroke();
       if(isUp){ctx.strokeRect(x-hw,top,hw*2,bh);ctx.globalAlpha=.18;ctx.fillStyle=col;ctx.fillRect(x-hw,top,hw*2,bh);}
@@ -315,7 +315,7 @@ function applyChart(key,candles,ma100Pts,ma200Pts,rangeMonths){
 
   const datasets=[{
     data:candles,backgroundColor:'transparent',borderColor:'transparent',
-    barPercentage:.8,categoryPercentage:1,order:2,
+    barPercentage:0.9,categoryPercentage:0.9,order:2,
   }];
   if(ma100Pts?.length)datasets.push({type:'line',data:ma100Pts,parsing:false,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,tension:0.3,order:1,label:'MA100'});
   if(ma200Pts?.length)datasets.push({type:'line',data:ma200Pts,parsing:false,borderColor:'#38bdf8',borderWidth:1.5,pointRadius:0,tension:0.3,order:0,label:'MA200'});
@@ -326,6 +326,7 @@ function applyChart(key,candles,ma100Pts,ma200Pts,rangeMonths){
     scales:{
       x:{
         type:'time',
+        offset: true,
         time:{
           unit: xCfg.unit,
           displayFormats: xCfg.displayFormats,
@@ -333,7 +334,7 @@ function applyChart(key,candles,ma100Pts,ma200Pts,rangeMonths){
         },
         grid:{color:'#1a1a28'},border:{color:'#2a2a3a'},
         ticks:{
-          color: twoLine ? 'transparent' : '#7dd3fc',  // hide default ticks when using two-line plugin
+          color: twoLine ? 'transparent' : '#7dd3fc',
           font:{family:'Inter',size:10,weight:'500'},
           maxRotation:0,
           maxTicksLimit: xCfg.maxTicksLimit,
