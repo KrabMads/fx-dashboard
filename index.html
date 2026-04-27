@@ -14,8 +14,10 @@
   --bg:#0c0c0f;--surface:#111116;--surface2:#16161c;
   --border:#222228;--border2:#2a2a32;
   --text:#f0f0f5;--muted:#555560;--subtle:#38383f;
-  --axis:#a0a0b8;    /* noticeably brighter axis */
-  --grid-line:#1e1e2a;
+  --axis-x:#7dd3fc;       /* sky blue for x-axis dates */
+  --axis-y:#a78bfa;       /* violet for y-axis prices */
+  --grid-line:#1a1a28;
+  --axis-border:#2a2a3a;
   --up:#22c55e;--down:#ef4444;--accent:#6366f1;
   --ma100:#f59e0b;--ma200:#38bdf8;
 }
@@ -23,7 +25,6 @@
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif}
 body{display:flex;flex-direction:column}
 
-/* HEADER */
 header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:48px;background:var(--surface);border-bottom:1px solid var(--border)}
 .brand{font-size:17px;font-weight:700;letter-spacing:-.02em}
 .brand span{font-weight:300;color:var(--muted);font-size:12px;margin-left:8px;letter-spacing:.05em}
@@ -33,7 +34,6 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 #clock{font-size:13px;font-weight:500;color:var(--text);font-variant-numeric:tabular-nums}
 
-/* TOP CONTROLS */
 .controls{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:5px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
 .ctrl-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-right:2px;white-space:nowrap}
 .ctrl-sep{width:1px;height:18px;background:var(--border2);margin:0 8px;flex-shrink:0}
@@ -42,10 +42,8 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .btn:hover{color:var(--text);border-color:var(--subtle)}
 .btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
-/* GRID */
 .grid-wrap{flex:1;min-height:0;display:grid;gap:1px;background:var(--border)}
 
-/* CELL */
 .cell{background:var(--surface);display:flex;flex-direction:column;padding:10px 12px 6px;position:relative;overflow:hidden;min-height:0}
 .cell-top{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px}
 .pair-name{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--text)}
@@ -55,44 +53,18 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .chg{font-size:10px;font-weight:500;margin-top:2px;font-variant-numeric:tabular-nums;color:var(--muted)}
 .chg.up{color:var(--up)}.chg.down{color:var(--down)}
 
-/* Chart wrap */
 .cwrap{flex:1;min-height:0;position:relative}
 .cwrap canvas{width:100%!important;height:100%!important;display:block}
 
-/* MA + Reset buttons — top right of chart */
-.chart-btns{
-  position:absolute;top:4px;right:48px;
-  display:flex;gap:3px;z-index:10;
-}
-.ma-btn{
-  font-family:'Inter',sans-serif;font-size:8px;font-weight:700;
-  padding:2px 5px;border-radius:4px;cursor:pointer;
-  border:1px solid var(--border2);background:rgba(17,17,22,.88);
-  color:var(--muted);letter-spacing:.04em;transition:all .12s;
-  backdrop-filter:blur(4px);
-}
+.chart-btns{position:absolute;top:4px;right:48px;display:flex;gap:3px;z-index:10}
+.ma-btn{font-family:'Inter',sans-serif;font-size:8px;font-weight:700;padding:2px 5px;border-radius:4px;cursor:pointer;border:1px solid var(--border2);background:rgba(17,17,22,.88);color:var(--muted);letter-spacing:.04em;transition:all .12s;backdrop-filter:blur(4px)}
 .ma-btn:hover{color:var(--text);border-color:var(--subtle)}
 .ma-btn.active-100{background:rgba(245,158,11,.15);border-color:var(--ma100);color:var(--ma100)}
 .ma-btn.active-200{background:rgba(56,189,248,.15);border-color:var(--ma200);color:var(--ma200)}
-
-.reset-btn{
-  font-family:'Inter',sans-serif;font-size:8px;font-weight:700;
-  padding:2px 5px;border-radius:4px;cursor:pointer;
-  border:1px solid var(--border2);background:rgba(17,17,22,.88);
-  color:var(--muted);letter-spacing:.04em;transition:all .12s;
-  backdrop-filter:blur(4px);display:none;
-}
+.reset-btn{font-family:'Inter',sans-serif;font-size:8px;font-weight:700;padding:2px 5px;border-radius:4px;cursor:pointer;border:1px solid var(--border2);background:rgba(17,17,22,.88);color:var(--muted);letter-spacing:.04em;transition:all .12s;backdrop-filter:blur(4px);display:none}
 .reset-btn.visible{display:block}
 .reset-btn:hover{color:var(--text);border-color:var(--subtle)}
 
-/* Drag hint */
-.drag-hint{
-  position:absolute;bottom:24px;right:50px;
-  font-size:8px;color:var(--muted);opacity:.5;
-  pointer-events:none;letter-spacing:.04em;
-}
-
-/* CELL BOTTOM CONTROLS */
 .cell-controls{flex-shrink:0;display:flex;align-items:center;gap:3px;margin-top:4px;flex-wrap:wrap}
 .cell-sel{font-family:'Inter',sans-serif;font-size:9px;font-weight:600;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);border-radius:4px;padding:2px 4px;cursor:pointer;text-transform:uppercase;letter-spacing:.04em;appearance:none;-webkit-appearance:none}
 .cell-sel:focus{outline:none;border-color:var(--accent)}
@@ -101,7 +73,6 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .cell-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .cell-sep{width:1px;height:12px;background:var(--border2);margin:0 2px;flex-shrink:0}
 
-/* OVERLAY */
 .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(12,12,15,.93);gap:8px;padding:12px;text-align:center}
 .overlay.gone{display:none}
 .spin{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
@@ -109,7 +80,6 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .ov-lbl{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
 .ov-err{font-size:9px;color:var(--down);max-width:160px;line-height:1.6}
 
-/* FOOTER */
 footer{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:28px;background:var(--surface);border-top:1px solid var(--border);font-size:10px;color:var(--muted)}
 .leg{display:flex;gap:12px}
 .leg span{display:flex;align-items:center;gap:4px;font-weight:500}
@@ -174,6 +144,55 @@ let countdown=REFRESH_SEC;
 let gridCols=3;
 let cellSettings=[];
 
+// ── X-axis config based on range ──────────────────────────────────────────────
+// Returns Chart.js time scale options + a custom tick callback for two-line labels
+function xAxisConfig(rangeMonths) {
+  // For short ranges show days, for long ranges show months/years
+  if (rangeMonths <= 1) {
+    // 1 month: show every day. Top = "Apr 26", but only print month on first of month
+    return {
+      unit: 'day',
+      maxTicksLimit: 35,
+      displayFormats: { day: 'd' },   // we'll override with callback
+      tooltipFormat: 'dd MMM yyyy',
+      twoLine: true,   // custom flag
+    };
+  } else if (rangeMonths <= 3) {
+    // 3 months: show every ~3 days
+    return {
+      unit: 'day',
+      maxTicksLimit: 20,
+      displayFormats: { day: 'd' },
+      tooltipFormat: 'dd MMM yyyy',
+      twoLine: true,
+    };
+  } else if (rangeMonths <= 6) {
+    return {
+      unit: 'week',
+      maxTicksLimit: 14,
+      displayFormats: { week: 'd MMM' },
+      tooltipFormat: 'dd MMM yyyy',
+      twoLine: false,
+    };
+  } else if (rangeMonths <= 18) {
+    return {
+      unit: 'month',
+      maxTicksLimit: 14,
+      displayFormats: { month: 'MMM yy' },
+      tooltipFormat: 'dd MMM yyyy',
+      twoLine: false,
+    };
+  } else {
+    return {
+      unit: 'month',
+      maxTicksLimit: 10,
+      displayFormats: { month: 'MMM yy' },
+      tooltipFormat: 'dd MMM yyyy',
+      twoLine: false,
+    };
+  }
+}
+
 // ── MA helper ─────────────────────────────────────────────────────────────────
 function calcMA(dailyData,period){
   const result=[];
@@ -204,6 +223,50 @@ Chart.register({
       else{ctx.fillStyle=col;ctx.fillRect(x-hw,top,hw*2,bh);}
       ctx.restore();
     });
+  }
+});
+
+// ── Two-line x-axis plugin ────────────────────────────────────────────────────
+// Draws day number, and prints "MMM" above only when month changes
+Chart.register({
+  id:'twoLineX',
+  afterDraw(chart){
+    if(!chart._twoLineX) return;
+    const ctx=chart.ctx, xScale=chart.scales.x;
+    if(!xScale) return;
+
+    const ticks=xScale.ticks;
+    if(!ticks||!ticks.length) return;
+
+    let lastMonth=-1;
+    const bottom=xScale.bottom;
+    const axisColor='#7dd3fc';
+
+    ctx.save();
+    ctx.font='500 9px Inter, sans-serif';
+    ctx.textAlign='center';
+
+    ticks.forEach(tick=>{
+      const d=new Date(tick.value);
+      const x=xScale.getPixelForValue(tick.value);
+      const day=d.getDate();
+      const month=d.getMonth();
+
+      // Day number on bottom row
+      ctx.fillStyle=axisColor;
+      ctx.fillText(String(day), x, bottom+12);
+
+      // Month label on top row — only when month changes
+      if(month!==lastMonth){
+        const monthStr=d.toLocaleDateString('en-GB',{month:'short'});
+        ctx.fillStyle='#bae6fd'; // slightly brighter for month
+        ctx.font='600 9px Inter, sans-serif';
+        ctx.fillText(monthStr, x, bottom+23);
+        ctx.font='500 9px Inter, sans-serif';
+        lastMonth=month;
+      }
+    });
+    ctx.restore();
   }
 });
 
@@ -241,71 +304,14 @@ function trimMA(pts,months){
 // ── Chart ─────────────────────────────────────────────────────────────────────
 function destroyChart(key){if(charts[key]){charts[key].destroy();delete charts[key];}}
 
-const AXIS_COLOR='#a0a0b8';
-const GRID_COLOR='#1e1e2a';
-const AXIS_BORDER='#2a2a3a';
-
-function makeChartOptions(minY,maxY){
-  const pad=Math.max((maxY-minY)*0.08,0.005);
-  return{
-    responsive:true,maintainAspectRatio:false,animation:false,parsing:false,
-    layout:{padding:{top:4,bottom:2,left:0,right:4}},
-    scales:{
-      x:{
-        type:'time',
-        time:{unit:'month',displayFormats:{month:'MMM yy'},tooltipFormat:'dd MMM yyyy'},
-        grid:{color:GRID_COLOR},border:{color:AXIS_BORDER},
-        ticks:{color:AXIS_COLOR,font:{family:'Inter',size:10,weight:'500'},maxRotation:0,maxTicksLimit:7},
-      },
-      y:{
-        position:'right',min:minY-pad,max:maxY+pad,
-        grid:{color:GRID_COLOR},border:{color:AXIS_BORDER},
-        ticks:{color:AXIS_COLOR,font:{family:'Inter',size:10,weight:'500'},maxTicksLimit:6,callback:v=>v.toFixed(2)},
-      }
-    },
-    plugins:{
-      legend:{display:false},
-      zoom:{
-        zoom:{
-          drag:{
-            enabled:true,
-            axis:'y',
-            backgroundColor:'rgba(99,102,241,0.08)',
-            borderColor:'rgba(99,102,241,0.4)',
-            borderWidth:1,
-          },
-          mode:'y',
-          onZoomComplete({chart}){
-            // Show reset button when zoomed
-            const key=chart.canvas.id.replace('cv-','');
-            const rb=document.getElementById(`reset-${key}`);
-            if(rb)rb.classList.add('visible');
-          }
-        },
-        limits:{y:{min:'original',max:'original'}},
-      },
-      tooltip:{
-        backgroundColor:'#111116',borderColor:'#222228',borderWidth:1,
-        titleColor:'#f0f0f5',bodyColor:'#a0a0b8',
-        titleFont:{family:'Inter',size:11,weight:'600'},
-        bodyFont:{family:'Inter',size:10},
-        callbacks:{
-          label:ctx=>{
-            if(ctx.dataset.label==='MA100')return`MA100: ${ctx.parsed.y.toFixed(4)}`;
-            if(ctx.dataset.label==='MA200')return`MA200: ${ctx.parsed.y.toFixed(4)}`;
-            const d=ctx.raw;
-            return[`O: ${d.o.toFixed(4)}`,`H: ${d.h.toFixed(4)}`,`L: ${d.l.toFixed(4)}`,`C: ${d.c.toFixed(4)}`];
-          }
-        }
-      }
-    }
-  };
-}
-
-function applyChart(key,candles,ma100Pts,ma200Pts){
+function applyChart(key,candles,ma100Pts,ma200Pts,rangeMonths){
   const canvas=document.getElementById(`cv-${key}`);if(!canvas)return;
   const minY=Math.min(...candles.map(c=>c.l));
   const maxY=Math.max(...candles.map(c=>c.h));
+  const pad=Math.max((maxY-minY)*0.08,0.005);
+
+  const xCfg=xAxisConfig(rangeMonths);
+  const twoLine=xCfg.twoLine;
 
   const datasets=[{
     data:candles,backgroundColor:'transparent',borderColor:'transparent',
@@ -314,20 +320,76 @@ function applyChart(key,candles,ma100Pts,ma200Pts){
   if(ma100Pts?.length)datasets.push({type:'line',data:ma100Pts,parsing:false,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,tension:0.3,order:1,label:'MA100'});
   if(ma200Pts?.length)datasets.push({type:'line',data:ma200Pts,parsing:false,borderColor:'#38bdf8',borderWidth:1.5,pointRadius:0,tension:0.3,order:0,label:'MA200'});
 
+  const options={
+    responsive:true,maintainAspectRatio:false,animation:false,parsing:false,
+    layout:{padding:{top:4,bottom: twoLine?14:2,left:0,right:4}},
+    scales:{
+      x:{
+        type:'time',
+        time:{
+          unit: xCfg.unit,
+          displayFormats: xCfg.displayFormats,
+          tooltipFormat: xCfg.tooltipFormat,
+        },
+        grid:{color:'#1a1a28'},border:{color:'#2a2a3a'},
+        ticks:{
+          color: twoLine ? 'transparent' : '#7dd3fc',  // hide default ticks when using two-line plugin
+          font:{family:'Inter',size:10,weight:'500'},
+          maxRotation:0,
+          maxTicksLimit: xCfg.maxTicksLimit,
+        },
+      },
+      y:{
+        position:'right',min:minY-pad,max:maxY+pad,
+        grid:{color:'#1a1a28'},border:{color:'#2a2a3a'},
+        ticks:{
+          color:'#a78bfa',   // violet for prices
+          font:{family:'Inter',size:10,weight:'500'},
+          maxTicksLimit:6,
+          callback:v=>v.toFixed(2),
+        }
+      }
+    },
+    plugins:{
+      legend:{display:false},
+      twoLineX: twoLine,   // consumed by our custom plugin via chart._twoLineX
+      zoom:{
+        zoom:{
+          drag:{enabled:true,axis:'y',backgroundColor:'rgba(99,102,241,0.08)',borderColor:'rgba(99,102,241,0.4)',borderWidth:1},
+          mode:'y',
+          onZoomComplete({chart}){
+            const k=chart.canvas.id.replace('cv-','');
+            const rb=document.getElementById(`reset-${k}`);if(rb)rb.classList.add('visible');
+          }
+        },
+        limits:{y:{min:'original',max:'original'}},
+      },
+      tooltip:{
+        backgroundColor:'#111116',borderColor:'#222228',borderWidth:1,
+        titleColor:'#f0f0f5',bodyColor:'#a0a0b8',
+        titleFont:{family:'Inter',size:11,weight:'600'},bodyFont:{family:'Inter',size:10},
+        callbacks:{
+          label:ctx=>{
+            if(ctx.dataset.label==='MA100')return`MA100: ${ctx.parsed.y.toFixed(4)}`;
+            if(ctx.dataset.label==='MA200')return`MA200: ${ctx.parsed.y.toFixed(4)}`;
+            const d=ctx.raw;return[`O: ${d.o.toFixed(4)}`,`H: ${d.h.toFixed(4)}`,`L: ${d.l.toFixed(4)}`,`C: ${d.c.toFixed(4)}`];
+          }
+        }
+      }
+    }
+  };
+
   if(charts[key]){
+    charts[key]._twoLineX=twoLine;
     charts[key].data.datasets=datasets;
-    const pad=Math.max((maxY-minY)*0.08,0.005);
-    charts[key].options.scales.y.min=minY-pad;
-    charts[key].options.scales.y.max=maxY+pad;
+    charts[key].options=options;
     charts[key].update('none');
     return;
   }
 
-  charts[key]=new Chart(canvas.getContext('2d'),{
-    type:'bar',
-    data:{datasets},
-    options:makeChartOptions(minY,maxY),
-  });
+  const ch=new Chart(canvas.getContext('2d'),{type:'bar',data:{datasets},options});
+  ch._twoLineX=twoLine;
+  charts[key]=ch;
 }
 
 // ── Render cell ───────────────────────────────────────────────────────────────
@@ -353,7 +415,7 @@ function renderCell(idx){
     }
     const ma100=s.ma100?trimMA(calcMA(daily,100),s.range):null;
     const ma200=s.ma200?trimMA(calcMA(daily,200),s.range):null;
-    applyChart(key,candles,ma100,ma200);
+    applyChart(key,candles,ma100,ma200,s.range);
     const ov=document.getElementById(`ov-${key}`);if(ov)ov.classList.add('gone');
   }catch(e){
     const ov=document.getElementById(`ov-${key}`);
@@ -402,7 +464,6 @@ function buildGrid(cols){
           <button class="ma-btn" data-idx="${idx}" data-ma="100">MA100</button>
           <button class="ma-btn" data-idx="${idx}" data-ma="200">MA200</button>
         </div>
-        <div class="drag-hint">drag to zoom Y</div>
         <div class="overlay" id="ov-${key}"><div class="spin"></div><div class="ov-lbl">Loading…</div></div>
       </div>
       <div class="cell-controls">
@@ -436,31 +497,25 @@ document.getElementById('grid').addEventListener('change',e=>{
 });
 
 document.getElementById('grid').addEventListener('click',e=>{
-  // Reset zoom
   const rb=e.target.closest('.reset-btn');
   if(rb){
     const idx=+rb.dataset.idx,key=`cell-${idx}`;
-    if(charts[key]){charts[key].resetZoom();}
-    rb.classList.remove('visible');
-    return;
+    if(charts[key])charts[key].resetZoom();
+    rb.classList.remove('visible');return;
   }
-  // MA toggle
   const maBtn=e.target.closest('.ma-btn');
   if(maBtn){
     const idx=+maBtn.dataset.idx,ma=+maBtn.dataset.ma,key=`cell-${idx}`;
     if(ma===100){cellSettings[idx].ma100=!cellSettings[idx].ma100;maBtn.classList.toggle('active-100',cellSettings[idx].ma100);}
     else{cellSettings[idx].ma200=!cellSettings[idx].ma200;maBtn.classList.toggle('active-200',cellSettings[idx].ma200);}
-    destroyChart(key);renderCell(idx);
-    return;
+    destroyChart(key);renderCell(idx);return;
   }
-  // Range / candle
   const btn=e.target.closest('.cell-btn');if(!btn)return;
   const idx=+btn.dataset.idx,type=btn.dataset.type,val=+btn.dataset.val,key=`cell-${idx}`;
   btn.closest('.cell-controls').querySelectorAll(`.cell-btn[data-type="${type}"]`).forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(type==='range') cellSettings[idx].range=val;
   if(type==='candle'){cellSettings[idx].candle=val;destroyChart(key);}
-  // Reset zoom indicator on range/candle change
   const rb2=document.getElementById(`reset-${key}`);if(rb2)rb2.classList.remove('visible');
   renderCell(idx);
 });
