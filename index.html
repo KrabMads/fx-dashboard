@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arla FX Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+:root{--bg:#0c0c0f;--surface:#111116;--surface2:#16161c;--border:#222228;--border2:#2a2a32;--text:#f0f0f5;--muted:#555560;--subtle:#38383f;--up:#22c55e;--down:#ef4444;--accent:#6366f1}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif}
+body{display:flex;flex-direction:column}
+
+header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:48px;background:var(--surface);border-bottom:1px solid var(--border)}
+.brand{font-size:17px;font-weight:700;letter-spacing:-.02em}
+.brand span{font-weight:300;color:var(--muted);font-size:12px;margin-left:8px;letter-spacing:.05em}
+.hdr-right{display:flex;align-items:center;gap:16px}
+.live-badge{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500;color:var(--muted)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--up);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+#clock{font-size:13px;font-weight:500;color:var(--text);font-variant-numeric:tabular-nums}
+
+.controls{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:5px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.ctrl-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-right:2px;white-space:nowrap}
+.ctrl-sep{width:1px;height:18px;background:var(--border2);margin:0 8px;flex-shrink:0}
+.btn-grp{display:flex;gap:2px}
+.btn{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;padding:3px 10px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;letter-spacing:.04em;text-transform:uppercase;transition:all .12s;white-space:nowrap}
+.btn:hover{color:var(--text);border-color:var(--subtle)}
+.btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.grid-wrap{flex:1;min-height:0;display:grid;gap:1px;background:var(--border)}
+
+.cell{background:var(--surface);display:flex;flex-direction:column;padding:10px 12px 6px;position:relative;overflow:hidden;min-height:0}
+.cell-top{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px}
+.pair-name{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--text)}
+.pair-sub{font-size:9px;font-weight:500;color:var(--muted);margin-top:2px;letter-spacing:.06em;text-transform:uppercase}
+.pblock{text-align:right;flex-shrink:0}
+.price{font-size:15px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
+.chg{font-size:10px;font-weight:500;margin-top:2px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.chg.up{color:var(--up)}.chg.down{color:var(--down)}
+.cwrap{flex:1;min-height:0;position:relative}
+.cwrap canvas{width:100%!important;height:100%!important;display:block}
+
+.cell-controls{flex-shrink:0;display:flex;align-items:center;gap:3px;margin-top:4px;flex-wrap:wrap}
+.cell-sel{font-family:'Inter',sans-serif;font-size:9px;font-weight:600;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);border-radius:4px;padding:2px 4px;cursor:pointer;text-transform:uppercase;letter-spacing:.04em;appearance:none;-webkit-appearance:none}
+.cell-sel:focus{outline:none;border-color:var(--accent)}
+.cell-btn{font-family:'Inter',sans-serif;font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;letter-spacing:.04em;text-transform:uppercase;transition:all .12s}
+.cell-btn:hover{color:var(--text);border-color:var(--subtle)}
+.cell-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.cell-sep{width:1px;height:12px;background:var(--border2);margin:0 2px;flex-shrink:0}
+
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(12,12,15,.93);gap:8px;padding:12px;text-align:center}
+.overlay.gone{display:none}
+.spin{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ov-lbl{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.ov-err{font-size:9px;color:var(--down);max-width:160px;line-height:1.6}
+
+footer{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:28px;background:var(--surface);border-top:1px solid var(--border);font-size:10px;color:var(--muted)}
+.leg{display:flex;gap:12px}
+.leg span{display:flex;align-items:center;gap:4px;font-weight:500}
+.lb{width:8px;height:8px;border-radius:2px}
+.lb.up{background:var(--up)}.lb.down{background:var(--down)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Arla <span>FX MONITOR</span></div>
+  <div class="hdr-right">
+    <div class="live-badge"><div class="live-dot"></div><span id="cd">10:00</span></div>
+    <div id="clock">--:--:--</div>
+  </div>
+</header>
+
+<div class="controls">
+  <span class="ctrl-label">Grid size</span>
+  <div class="btn-grp" id="grid-size-btns">
+    <button class="btn" data-size="2">2×2</button>
+    <button class="btn active" data-size="3">3×2</button>
+    <button class="btn" data-size="4">4×2</button>
+    <button class="btn" data-size="6">6×2</button>
+  </div>
+</div>
+
+<div class="grid-wrap" id="grid"></div>
+
+<footer>
+  <div class="leg">
+    <span><div class="lb up"></div>Bullish</span>
+    <span><div class="lb down"></div>Bearish</span>
+  </div>
+  <div id="data-ts">Yahoo Finance · Updated every 10 min</div>
+</footer>
+
+<script>
+const ALL_PAIRS=[
+  {id:'EURDKK',label:'EUR/DKK'},
+  {id:'GBPDKK',label:'GBP/DKK'},
+  {id:'USDDKK',label:'USD/DKK'},
+  {id:'SEKDKK',label:'SEK/DKK'},
+  {id:'AUDDKK',label:'AUD/DKK'},
+  {id:'CADDKK',label:'CAD/DKK'},
+];
+
+const DEFAULT_PAIRS={
+  2:['EURDKK','USDDKK','SEKDKK','GBPDKK'],
+  3:['EURDKK','USDDKK','SEKDKK','GBPDKK','AUDDKK','CADDKK'],
+  4:['EURDKK','USDDKK','SEKDKK','GBPDKK','AUDDKK','CADDKK','EURDKK','USDDKK'],
+  6:['EURDKK','GBPDKK','USDDKK','SEKDKK','AUDDKK','CADDKK','EURDKK','GBPDKK','USDDKK','SEKDKK','AUDDKK','CADDKK'],
+};
+
+const REFRESH_SEC=600;
+const rawData={};
+const charts={};
+let countdown=REFRESH_SEC;
+let gridCols=3;
+let cellSettings=[];
+
+// ── Candlestick plugin ────────────────────────────────────────────────────────
+Chart.register({
+  id:'candles',
+  afterDatasetsDraw(chart){
+    const ctx=chart.ctx,ds=chart.data.datasets[0],meta=chart.getDatasetMeta(0),yS=chart.scales.y;
+    if(!meta?.data?.length)return;
+    ds.data.forEach((d,i)=>{
+      const bar=meta.data[i];if(!bar||!d)return;
+      const isUp=d.c>=d.o,col=isUp?'#22c55e':'#ef4444',x=bar.x;
+      const yO=yS.getPixelForValue(d.o),yC=yS.getPixelForValue(d.c);
+      const yH=yS.getPixelForValue(d.h),yL=yS.getPixelForValue(d.l);
+      const top=Math.min(yO,yC),bot=Math.max(yO,yC),bh=Math.max(bot-top,1.5),hw=Math.max((bar.width||6)/2,2);
+      ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(x,yH);ctx.lineTo(x,top);ctx.moveTo(x,bot);ctx.lineTo(x,yL);ctx.stroke();
+      if(isUp){ctx.strokeRect(x-hw,top,hw*2,bh);ctx.globalAlpha=.18;ctx.fillStyle=col;ctx.fillRect(x-hw,top,hw*2,bh);}
+      else{ctx.fillStyle=col;ctx.fillRect(x-hw,top,hw*2,bh);}
+      ctx.restore();
+    });
+  }
+});
+
+// ── Data helpers ──────────────────────────────────────────────────────────────
+function parseYahoo(json){
+  const r=json.chart.result[0],q=r.indicators.quote[0];
+  return r.timestamp.map((t,i)=>({
+    date:new Date(t*1000).toISOString().split('T')[0],
+    o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i],
+  })).filter(d=>d.o!=null&&d.c!=null&&d.h!=null&&d.l!=null);
+}
+
+function toCandles(daily,nDays){
+  if(nDays<=1)return daily.map(d=>({x:new Date(d.date).getTime(),o:d.o,h:d.h,l:d.l,c:d.c}));
+  const buckets={};
+  daily.forEach(d=>{
+    const ms=new Date(d.date).getTime(),slot=Math.floor(ms/(nDays*86400000))*(nDays*86400000);
+    if(!buckets[slot])buckets[slot]=[];buckets[slot].push(d);
+  });
+  return Object.keys(buckets).sort((a,b)=>a-b).map(slot=>{
+    const days=buckets[slot];
+    return{x:+slot,o:days[0].o,h:Math.max(...days.map(d=>d.h)),l:Math.min(...days.map(d=>d.l)),c:days[days.length-1].c};
+  });
+}
+
+function trimMonths(candles,months){
+  const cut=new Date();cut.setMonth(cut.getMonth()-months);
+  return candles.filter(c=>c.x>=cut.getTime());
+}
+
+// ── Chart ─────────────────────────────────────────────────────────────────────
+function destroyChart(key){if(charts[key]){charts[key].destroy();delete charts[key];}}
+
+function applyChart(key,candles){
+  const canvas=document.getElementById(`cv-${key}`);if(!canvas)return;
+  const minY=Math.min(...candles.map(c=>c.l)),maxY=Math.max(...candles.map(c=>c.h));
+  const pad=Math.max((maxY-minY)*0.08,0.005);
+  if(charts[key]){
+    charts[key].data.datasets[0].data=candles;
+    charts[key].options.scales.y.min=minY-pad;charts[key].options.scales.y.max=maxY+pad;
+    charts[key].update('none');return;
+  }
+  charts[key]=new Chart(canvas.getContext('2d'),{
+    type:'bar',
+    data:{datasets:[{data:candles,backgroundColor:'transparent',borderColor:'transparent',barPercentage:.8,categoryPercentage:1}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,animation:false,parsing:false,
+      layout:{padding:{top:4,bottom:2,left:0,right:4}},
+      scales:{
+        x:{type:'time',time:{unit:'month',displayFormats:{month:'MMM yy'},tooltipFormat:'dd MMM yyyy'},
+          grid:{color:'#1a1a22'},border:{color:'#1a1a22'},
+          ticks:{color:'#444450',font:{family:'Inter',size:9},maxRotation:0,maxTicksLimit:7}},
+        y:{position:'right',min:minY-pad,max:maxY+pad,
+          grid:{color:'#1a1a22'},border:{color:'#1a1a22'},
+          ticks:{color:'#444450',font:{family:'Inter',size:9},maxTicksLimit:5,callback:v=>v.toFixed(2)}}
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#111116',borderColor:'#222228',borderWidth:1,
+          titleColor:'#f0f0f5',bodyColor:'#555560',
+          titleFont:{family:'Inter',size:11,weight:'600'},bodyFont:{family:'Inter',size:10},
+          callbacks:{label:ctx=>{const d=ctx.raw;return[`O: ${d.o.toFixed(4)}`,`H: ${d.h.toFixed(4)}`,`L: ${d.l.toFixed(4)}`,`C: ${d.c.toFixed(4)}`];}}
+        }
+      }
+    }
+  });
+}
+
+// ── Render cell ───────────────────────────────────────────────────────────────
+function renderCell(idx){
+  const s=cellSettings[idx];if(!s)return;
+  const key=`cell-${idx}`;
+  const pair=ALL_PAIRS.find(p=>p.id===s.pairId)||ALL_PAIRS[0];
+  const nameEl=document.getElementById(`name-${key}`);
+  if(nameEl)nameEl.textContent=pair.label;
+  const rangeLabel=s.range<12?`${s.range}M`:`${Math.round(s.range/12)}Y`;
+  const candleLabel=s.candle<=1?'Daily':s.candle<=7?'Weekly':'Monthly';
+  const subEl=document.getElementById(`sub-${key}`);
+  if(subEl)subEl.textContent=`${rangeLabel} · ${candleLabel}`;
+
+  const daily=rawData[s.pairId];
+  if(!daily)return;
+
+  try{
+    const candles=trimMonths(toCandles(daily,s.candle),s.range);
+    if(!candles.length)throw new Error('No data in this range');
+    const last=candles[candles.length-1],prev=candles.length>1?candles[candles.length-2]:null;
+    const priceEl=document.getElementById(`price-${key}`);
+    if(priceEl)priceEl.textContent=last.c.toFixed(4);
+    if(prev){
+      const el=document.getElementById(`chg-${key}`);
+      const d=last.c-prev.c,pct=(d/prev.c*100).toFixed(2),sg=d>=0?'+':'';
+      if(el){el.textContent=`${sg}${d.toFixed(4)}  (${sg}${pct}%)`;el.className=`chg ${d>=0?'up':'down'}`;}
+    }
+    applyChart(key,candles);
+    const ov=document.getElementById(`ov-${key}`);if(ov)ov.classList.add('gone');
+  }catch(e){
+    const ov=document.getElementById(`ov-${key}`);
+    if(ov){ov.innerHTML=`<div style="font-size:16px">⚠️</div><div class="ov-err">${e.message}</div>`;ov.classList.remove('gone');}
+  }
+}
+
+// ── Build grid ────────────────────────────────────────────────────────────────
+function buildGrid(cols){
+  Object.keys(charts).forEach(k=>destroyChart(k));
+  const total=cols*2;
+  const layout=DEFAULT_PAIRS[cols]||DEFAULT_PAIRS[3];
+  cellSettings=Array.from({length:total},(_,i)=>({
+    pairId:layout[i%layout.length]||ALL_PAIRS[0].id,
+    range: i<cols?36:3,
+    candle:i<cols?7:1,
+  }));
+
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+  grid.style.gridTemplateColumns=`repeat(${cols},1fr)`;
+  grid.style.gridTemplateRows='repeat(2,1fr)';
+
+  cellSettings.forEach((s,idx)=>{
+    const key=`cell-${idx}`;
+    const pair=ALL_PAIRS.find(p=>p.id===s.pairId)||ALL_PAIRS[0];
+    const opts=ALL_PAIRS.map(p=>`<option value="${p.id}"${p.id===s.pairId?' selected':''}>${p.label}</option>`).join('');
+    const rl=s.range<12?`${s.range}M`:`${Math.round(s.range/12)}Y`;
+    const cl=s.candle<=1?'Daily':s.candle<=7?'Weekly':'Monthly';
+    const cell=document.createElement('div');
+    cell.className='cell';
+    cell.innerHTML=`
+      <div class="cell-top">
+        <div>
+          <div class="pair-name" id="name-${key}">${pair.label}</div>
+          <div class="pair-sub"  id="sub-${key}">${rl} · ${cl}</div>
+        </div>
+        <div class="pblock">
+          <div class="price" id="price-${key}">—</div>
+          <div class="chg"   id="chg-${key}">—</div>
+        </div>
+      </div>
+      <div class="cwrap">
+        <canvas id="cv-${key}"></canvas>
+        <div class="overlay" id="ov-${key}"><div class="spin"></div><div class="ov-lbl">Loading…</div></div>
+      </div>
+      <div class="cell-controls">
+        <select class="cell-sel" data-idx="${idx}" data-type="pair">${opts}</select>
+        <div class="cell-sep"></div>
+        <button class="cell-btn${s.range===1?' active':''}"  data-idx="${idx}" data-type="range"  data-val="1">1M</button>
+        <button class="cell-btn${s.range===3?' active':''}"  data-idx="${idx}" data-type="range"  data-val="3">3M</button>
+        <button class="cell-btn${s.range===6?' active':''}"  data-idx="${idx}" data-type="range"  data-val="6">6M</button>
+        <button class="cell-btn${s.range===36?' active':''}" data-idx="${idx}" data-type="range"  data-val="36">3Y</button>
+        <button class="cell-btn${s.range===60?' active':''}" data-idx="${idx}" data-type="range"  data-val="60">5Y</button>
+        <div class="cell-sep"></div>
+        <button class="cell-btn${s.candle===1?' active':''}"  data-idx="${idx}" data-type="candle" data-val="1">D</button>
+        <button class="cell-btn${s.candle===7?' active':''}"  data-idx="${idx}" data-type="candle" data-val="7">W</button>
+        <button class="cell-btn${s.candle===30?' active':''}" data-idx="${idx}" data-type="candle" data-val="30">M</button>
+      </div>`;
+    grid.appendChild(cell);
+  });
+
+  cellSettings.forEach((_,idx)=>renderCell(idx));
+}
+
+// ── Events ────────────────────────────────────────────────────────────────────
+document.getElementById('grid').addEventListener('change',e=>{
+  if(!e.target.matches('.cell-sel[data-type="pair"]'))return;
+  const idx=+e.target.dataset.idx,key=`cell-${idx}`;
+  cellSettings[idx].pairId=e.target.value;
+  destroyChart(key);
+  if(!rawData[e.target.value])fetchPair(e.target.value).then(()=>renderCell(idx));
+  else renderCell(idx);
+});
+
+document.getElementById('grid').addEventListener('click',e=>{
+  const btn=e.target.closest('.cell-btn');if(!btn)return;
+  const idx=+btn.dataset.idx,type=btn.dataset.type,val=+btn.dataset.val,key=`cell-${idx}`;
+  btn.closest('.cell-controls').querySelectorAll(`.cell-btn[data-type="${type}"]`).forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(type==='range') cellSettings[idx].range=val;
+  if(type==='candle'){cellSettings[idx].candle=val;destroyChart(key);}
+  renderCell(idx);
+});
+
+document.getElementById('grid-size-btns').addEventListener('click',e=>{
+  const btn=e.target.closest('.btn');if(!btn)return;
+  document.querySelectorAll('#grid-size-btns .btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  gridCols=+btn.dataset.size;
+  buildGrid(gridCols);
+});
+
+// ── Fetch ─────────────────────────────────────────────────────────────────────
+async function fetchPair(pairId){
+  try{
+    const r=await fetch(`data/${pairId}.json?t=${Date.now()}`);
+    if(!r.ok)throw new Error(`HTTP ${r.status}`);
+    const json=await r.json();
+    if(!json.chart)throw new Error('No data yet — run GitHub Actions first');
+    rawData[pairId]=parseYahoo(json);
+  }catch(e){console.error(pairId,e);}
+}
+
+async function fetchAll(){
+  console.log('[FX] refresh',new Date().toTimeString().slice(0,8));
+  await Promise.allSettled(ALL_PAIRS.map(p=>fetchPair(p.id)));
+  let latest=null;
+  ALL_PAIRS.forEach(p=>{const d=rawData[p.id];if(d?.length){const ld=new Date(d[d.length-1].date);if(!latest||ld>latest)latest=ld;}});
+  if(latest)document.getElementById('data-ts').textContent=`Yahoo Finance · Last data: ${latest.toLocaleDateString('da-DK',{day:'2-digit',month:'short',year:'numeric'})}`;
+  cellSettings.forEach((_,idx)=>renderCell(idx));
+}
+
+setInterval(()=>{
+  document.getElementById('clock').textContent=new Date().toLocaleTimeString('da-DK',{hour12:false});
+  countdown--;
+  if(countdown<=0){countdown=REFRESH_SEC;fetchAll();}
+  const m=Math.floor(countdown/60),s=String(countdown%60).padStart(2,'0');
+  document.getElementById('cd').textContent=`${m}:${s}`;
+},1000);
+
+buildGrid(3);
+fetchAll();
+</script>
+</body>
+</html>
