@@ -6,13 +6,16 @@
 <title>Arla FX Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 :root{
   --bg:#0c0c0f;--surface:#111116;--surface2:#16161c;
   --border:#222228;--border2:#2a2a32;
   --text:#f0f0f5;--muted:#555560;--subtle:#38383f;
-  --axis:#8888a0;  /* brighter axis text */
+  --axis:#a0a0b8;    /* noticeably brighter axis */
+  --grid-line:#1e1e2a;
   --up:#22c55e;--down:#ef4444;--accent:#6366f1;
   --ma100:#f59e0b;--ma200:#38bdf8;
 }
@@ -30,7 +33,7 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 #clock{font-size:13px;font-weight:500;color:var(--text);font-variant-numeric:tabular-nums}
 
-/* CONTROLS */
+/* TOP CONTROLS */
 .controls{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:5px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
 .ctrl-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-right:2px;white-space:nowrap}
 .ctrl-sep{width:1px;height:18px;background:var(--border2);margin:0 8px;flex-shrink:0}
@@ -52,24 +55,42 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .chg{font-size:10px;font-weight:500;margin-top:2px;font-variant-numeric:tabular-nums;color:var(--muted)}
 .chg.up{color:var(--up)}.chg.down{color:var(--down)}
 
-/* Chart area with MA buttons overlaid top-right */
+/* Chart wrap */
 .cwrap{flex:1;min-height:0;position:relative}
 .cwrap canvas{width:100%!important;height:100%!important;display:block}
 
-.ma-btns{
-  position:absolute;top:4px;right:48px; /* offset from y-axis */
+/* MA + Reset buttons — top right of chart */
+.chart-btns{
+  position:absolute;top:4px;right:48px;
   display:flex;gap:3px;z-index:10;
 }
 .ma-btn{
   font-family:'Inter',sans-serif;font-size:8px;font-weight:700;
   padding:2px 5px;border-radius:4px;cursor:pointer;
-  border:1px solid var(--border2);background:rgba(17,17,22,.85);
+  border:1px solid var(--border2);background:rgba(17,17,22,.88);
   color:var(--muted);letter-spacing:.04em;transition:all .12s;
   backdrop-filter:blur(4px);
 }
 .ma-btn:hover{color:var(--text);border-color:var(--subtle)}
 .ma-btn.active-100{background:rgba(245,158,11,.15);border-color:var(--ma100);color:var(--ma100)}
 .ma-btn.active-200{background:rgba(56,189,248,.15);border-color:var(--ma200);color:var(--ma200)}
+
+.reset-btn{
+  font-family:'Inter',sans-serif;font-size:8px;font-weight:700;
+  padding:2px 5px;border-radius:4px;cursor:pointer;
+  border:1px solid var(--border2);background:rgba(17,17,22,.88);
+  color:var(--muted);letter-spacing:.04em;transition:all .12s;
+  backdrop-filter:blur(4px);display:none;
+}
+.reset-btn.visible{display:block}
+.reset-btn:hover{color:var(--text);border-color:var(--subtle)}
+
+/* Drag hint */
+.drag-hint{
+  position:absolute;bottom:24px;right:50px;
+  font-size:8px;color:var(--muted);opacity:.5;
+  pointer-events:none;letter-spacing:.04em;
+}
 
 /* CELL BOTTOM CONTROLS */
 .cell-controls{flex-shrink:0;display:flex;align-items:center;gap:3px;margin-top:4px;flex-wrap:wrap}
@@ -153,18 +174,16 @@ let countdown=REFRESH_SEC;
 let gridCols=3;
 let cellSettings=[];
 
-// ── Moving average helper ─────────────────────────────────────────────────────
-// MA is calculated on DAILY data then mapped to candle timestamps
-function calcMA(dailyData, period) {
-  // Returns array of {x: timestamp_ms, y: value} for each daily point
-  const result = [];
-  for (let i = 0; i < dailyData.length; i++) {
-    if (i < period - 1) { result.push(null); continue; }
-    let sum = 0;
-    for (let j = i - period + 1; j <= i; j++) sum += dailyData[j].c;
-    result.push({ x: new Date(dailyData[i].date).getTime(), y: sum / period });
+// ── MA helper ─────────────────────────────────────────────────────────────────
+function calcMA(dailyData,period){
+  const result=[];
+  for(let i=0;i<dailyData.length;i++){
+    if(i<period-1)continue;
+    let sum=0;
+    for(let j=i-period+1;j<=i;j++)sum+=dailyData[j].c;
+    result.push({x:new Date(dailyData[i].date).getTime(),y:sum/period});
   }
-  return result.filter(p => p !== null);
+  return result;
 }
 
 // ── Candlestick plugin ────────────────────────────────────────────────────────
@@ -214,93 +233,100 @@ function trimMonths(candles,months){
   const cut=new Date();cut.setMonth(cut.getMonth()-months);
   return candles.filter(c=>c.x>=cut.getTime());
 }
-
-function trimMA(maPoints, months) {
+function trimMA(pts,months){
   const cut=new Date();cut.setMonth(cut.getMonth()-months);
-  return maPoints.filter(p=>p.x>=cut.getTime());
+  return pts.filter(p=>p.x>=cut.getTime());
 }
 
 // ── Chart ─────────────────────────────────────────────────────────────────────
 function destroyChart(key){if(charts[key]){charts[key].destroy();delete charts[key];}}
 
-function applyChart(key, candles, ma100Points, ma200Points){
+const AXIS_COLOR='#a0a0b8';
+const GRID_COLOR='#1e1e2a';
+const AXIS_BORDER='#2a2a3a';
+
+function makeChartOptions(minY,maxY){
+  const pad=Math.max((maxY-minY)*0.08,0.005);
+  return{
+    responsive:true,maintainAspectRatio:false,animation:false,parsing:false,
+    layout:{padding:{top:4,bottom:2,left:0,right:4}},
+    scales:{
+      x:{
+        type:'time',
+        time:{unit:'month',displayFormats:{month:'MMM yy'},tooltipFormat:'dd MMM yyyy'},
+        grid:{color:GRID_COLOR},border:{color:AXIS_BORDER},
+        ticks:{color:AXIS_COLOR,font:{family:'Inter',size:10,weight:'500'},maxRotation:0,maxTicksLimit:7},
+      },
+      y:{
+        position:'right',min:minY-pad,max:maxY+pad,
+        grid:{color:GRID_COLOR},border:{color:AXIS_BORDER},
+        ticks:{color:AXIS_COLOR,font:{family:'Inter',size:10,weight:'500'},maxTicksLimit:6,callback:v=>v.toFixed(2)},
+      }
+    },
+    plugins:{
+      legend:{display:false},
+      zoom:{
+        zoom:{
+          drag:{
+            enabled:true,
+            axis:'y',
+            backgroundColor:'rgba(99,102,241,0.08)',
+            borderColor:'rgba(99,102,241,0.4)',
+            borderWidth:1,
+          },
+          mode:'y',
+          onZoomComplete({chart}){
+            // Show reset button when zoomed
+            const key=chart.canvas.id.replace('cv-','');
+            const rb=document.getElementById(`reset-${key}`);
+            if(rb)rb.classList.add('visible');
+          }
+        },
+        limits:{y:{min:'original',max:'original'}},
+      },
+      tooltip:{
+        backgroundColor:'#111116',borderColor:'#222228',borderWidth:1,
+        titleColor:'#f0f0f5',bodyColor:'#a0a0b8',
+        titleFont:{family:'Inter',size:11,weight:'600'},
+        bodyFont:{family:'Inter',size:10},
+        callbacks:{
+          label:ctx=>{
+            if(ctx.dataset.label==='MA100')return`MA100: ${ctx.parsed.y.toFixed(4)}`;
+            if(ctx.dataset.label==='MA200')return`MA200: ${ctx.parsed.y.toFixed(4)}`;
+            const d=ctx.raw;
+            return[`O: ${d.o.toFixed(4)}`,`H: ${d.h.toFixed(4)}`,`L: ${d.l.toFixed(4)}`,`C: ${d.c.toFixed(4)}`];
+          }
+        }
+      }
+    }
+  };
+}
+
+function applyChart(key,candles,ma100Pts,ma200Pts){
   const canvas=document.getElementById(`cv-${key}`);if(!canvas)return;
   const minY=Math.min(...candles.map(c=>c.l));
   const maxY=Math.max(...candles.map(c=>c.h));
-  const pad=Math.max((maxY-minY)*0.08,0.005);
 
   const datasets=[{
     data:candles,backgroundColor:'transparent',borderColor:'transparent',
     barPercentage:.8,categoryPercentage:1,order:2,
   }];
-
-  if(ma100Points?.length){
-    datasets.push({
-      type:'line',data:ma100Points,parsing:false,
-      borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,
-      tension:0.3,order:1,label:'MA100',
-    });
-  }
-  if(ma200Points?.length){
-    datasets.push({
-      type:'line',data:ma200Points,parsing:false,
-      borderColor:'#38bdf8',borderWidth:1.5,pointRadius:0,
-      tension:0.3,order:0,label:'MA200',
-    });
-  }
+  if(ma100Pts?.length)datasets.push({type:'line',data:ma100Pts,parsing:false,borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,tension:0.3,order:1,label:'MA100'});
+  if(ma200Pts?.length)datasets.push({type:'line',data:ma200Pts,parsing:false,borderColor:'#38bdf8',borderWidth:1.5,pointRadius:0,tension:0.3,order:0,label:'MA200'});
 
   if(charts[key]){
     charts[key].data.datasets=datasets;
+    const pad=Math.max((maxY-minY)*0.08,0.005);
     charts[key].options.scales.y.min=minY-pad;
     charts[key].options.scales.y.max=maxY+pad;
-    charts[key].update('none');return;
+    charts[key].update('none');
+    return;
   }
 
   charts[key]=new Chart(canvas.getContext('2d'),{
     type:'bar',
     data:{datasets},
-    options:{
-      responsive:true,maintainAspectRatio:false,animation:false,parsing:false,
-      layout:{padding:{top:4,bottom:2,left:0,right:4}},
-      scales:{
-        x:{
-          type:'time',
-          time:{unit:'month',displayFormats:{month:'MMM yy'},tooltipFormat:'dd MMM yyyy'},
-          grid:{color:'#1e1e28'},border:{color:'#2a2a38'},
-          ticks:{
-            color:'#8888a0',   /* brighter axis labels */
-            font:{family:'Inter',size:9,weight:'500'},
-            maxRotation:0,maxTicksLimit:7,
-          }
-        },
-        y:{
-          position:'right',min:minY-pad,max:maxY+pad,
-          grid:{color:'#1e1e28'},border:{color:'#2a2a38'},
-          ticks:{
-            color:'#8888a0',   /* brighter axis labels */
-            font:{family:'Inter',size:9,weight:'500'},
-            maxTicksLimit:5,callback:v=>v.toFixed(2),
-          }
-        }
-      },
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          backgroundColor:'#111116',borderColor:'#222228',borderWidth:1,
-          titleColor:'#f0f0f5',bodyColor:'#8888a0',
-          titleFont:{family:'Inter',size:11,weight:'600'},
-          bodyFont:{family:'Inter',size:10},
-          callbacks:{
-            label:ctx=>{
-              if(ctx.dataset.label==='MA100') return `MA100: ${ctx.parsed.y.toFixed(4)}`;
-              if(ctx.dataset.label==='MA200') return `MA200: ${ctx.parsed.y.toFixed(4)}`;
-              const d=ctx.raw;
-              return[`O: ${d.o.toFixed(4)}`,`H: ${d.h.toFixed(4)}`,`L: ${d.l.toFixed(4)}`,`C: ${d.c.toFixed(4)}`];
-            }
-          }
-        }
-      }
-    }
+    options:makeChartOptions(minY,maxY),
   });
 }
 
@@ -309,20 +335,15 @@ function renderCell(idx){
   const s=cellSettings[idx];if(!s)return;
   const key=`cell-${idx}`;
   const pair=ALL_PAIRS.find(p=>p.id===s.pairId)||ALL_PAIRS[0];
-
-  // Update labels
   const nameEl=document.getElementById(`name-${key}`);if(nameEl)nameEl.textContent=pair.label;
   const rl=s.range<12?`${s.range}M`:`${Math.round(s.range/12)}Y`;
   const cl=s.candle<=1?'Daily':s.candle<=7?'Weekly':'Monthly';
   const subEl=document.getElementById(`sub-${key}`);if(subEl)subEl.textContent=`${rl} · ${cl}`;
 
   const daily=rawData[s.pairId];if(!daily)return;
-
   try{
     const candles=trimMonths(toCandles(daily,s.candle),s.range);
     if(!candles.length)throw new Error('No data in this range');
-
-    // Price + change
     const last=candles[candles.length-1],prev=candles.length>1?candles[candles.length-2]:null;
     const priceEl=document.getElementById(`price-${key}`);if(priceEl)priceEl.textContent=last.c.toFixed(4);
     if(prev){
@@ -330,18 +351,8 @@ function renderCell(idx){
       const d=last.c-prev.c,pct=(d/prev.c*100).toFixed(2),sg=d>=0?'+':'';
       if(el){el.textContent=`${sg}${d.toFixed(4)}  (${sg}${pct}%)`;el.className=`chg ${d>=0?'up':'down'}`;}
     }
-
-    // Moving averages — calculated on full daily data, then trimmed to view range
-    let ma100=null,ma200=null;
-    if(s.ma100){
-      const pts=calcMA(daily,100);
-      ma100=trimMA(pts,s.range);
-    }
-    if(s.ma200){
-      const pts=calcMA(daily,200);
-      ma200=trimMA(pts,s.range);
-    }
-
+    const ma100=s.ma100?trimMA(calcMA(daily,100),s.range):null;
+    const ma200=s.ma200?trimMA(calcMA(daily,200),s.range):null;
     applyChart(key,candles,ma100,ma200);
     const ov=document.getElementById(`ov-${key}`);if(ov)ov.classList.add('gone');
   }catch(e){
@@ -357,10 +368,7 @@ function buildGrid(cols){
   const layout=DEFAULT_PAIRS[cols]||DEFAULT_PAIRS[3];
   cellSettings=Array.from({length:total},(_,i)=>({
     pairId:layout[i%layout.length]||ALL_PAIRS[0].id,
-    range: i<cols?36:3,
-    candle:i<cols?7:1,
-    ma100: false,
-    ma200: false,
+    range:i<cols?36:3,candle:i<cols?7:1,ma100:false,ma200:false,
   }));
 
   const grid=document.getElementById('grid');
@@ -374,7 +382,6 @@ function buildGrid(cols){
     const opts=ALL_PAIRS.map(p=>`<option value="${p.id}"${p.id===s.pairId?' selected':''}>${p.label}</option>`).join('');
     const rl=s.range<12?`${s.range}M`:`${Math.round(s.range/12)}Y`;
     const cl=s.candle<=1?'Daily':s.candle<=7?'Weekly':'Monthly';
-
     const cell=document.createElement('div');
     cell.className='cell';
     cell.innerHTML=`
@@ -390,10 +397,12 @@ function buildGrid(cols){
       </div>
       <div class="cwrap">
         <canvas id="cv-${key}"></canvas>
-        <div class="ma-btns">
+        <div class="chart-btns">
+          <button class="reset-btn" id="reset-${key}" data-idx="${idx}" title="Reset zoom">↺ Reset</button>
           <button class="ma-btn" data-idx="${idx}" data-ma="100">MA100</button>
           <button class="ma-btn" data-idx="${idx}" data-ma="200">MA200</button>
         </div>
+        <div class="drag-hint">drag to zoom Y</div>
         <div class="overlay" id="ov-${key}"><div class="spin"></div><div class="ov-lbl">Loading…</div></div>
       </div>
       <div class="cell-controls">
@@ -416,34 +425,34 @@ function buildGrid(cols){
 }
 
 // ── Events ────────────────────────────────────────────────────────────────────
-// Pair selector
 document.getElementById('grid').addEventListener('change',e=>{
   if(!e.target.matches('.cell-sel[data-type="pair"]'))return;
   const idx=+e.target.dataset.idx,key=`cell-${idx}`;
   cellSettings[idx].pairId=e.target.value;
   destroyChart(key);
+  const rb=document.getElementById(`reset-${key}`);if(rb)rb.classList.remove('visible');
   if(!rawData[e.target.value])fetchPair(e.target.value).then(()=>renderCell(idx));
   else renderCell(idx);
 });
 
-// Range / candle buttons
 document.getElementById('grid').addEventListener('click',e=>{
-  // MA buttons
+  // Reset zoom
+  const rb=e.target.closest('.reset-btn');
+  if(rb){
+    const idx=+rb.dataset.idx,key=`cell-${idx}`;
+    if(charts[key]){charts[key].resetZoom();}
+    rb.classList.remove('visible');
+    return;
+  }
+  // MA toggle
   const maBtn=e.target.closest('.ma-btn');
   if(maBtn){
     const idx=+maBtn.dataset.idx,ma=+maBtn.dataset.ma,key=`cell-${idx}`;
-    if(ma===100){
-      cellSettings[idx].ma100=!cellSettings[idx].ma100;
-      maBtn.classList.toggle('active-100',cellSettings[idx].ma100);
-    } else {
-      cellSettings[idx].ma200=!cellSettings[idx].ma200;
-      maBtn.classList.toggle('active-200',cellSettings[idx].ma200);
-    }
-    destroyChart(key);
-    renderCell(idx);
+    if(ma===100){cellSettings[idx].ma100=!cellSettings[idx].ma100;maBtn.classList.toggle('active-100',cellSettings[idx].ma100);}
+    else{cellSettings[idx].ma200=!cellSettings[idx].ma200;maBtn.classList.toggle('active-200',cellSettings[idx].ma200);}
+    destroyChart(key);renderCell(idx);
     return;
   }
-
   // Range / candle
   const btn=e.target.closest('.cell-btn');if(!btn)return;
   const idx=+btn.dataset.idx,type=btn.dataset.type,val=+btn.dataset.val,key=`cell-${idx}`;
@@ -451,16 +460,15 @@ document.getElementById('grid').addEventListener('click',e=>{
   btn.classList.add('active');
   if(type==='range') cellSettings[idx].range=val;
   if(type==='candle'){cellSettings[idx].candle=val;destroyChart(key);}
+  // Reset zoom indicator on range/candle change
+  const rb2=document.getElementById(`reset-${key}`);if(rb2)rb2.classList.remove('visible');
   renderCell(idx);
 });
 
-// Grid size
 document.getElementById('grid-size-btns').addEventListener('click',e=>{
   const btn=e.target.closest('.btn');if(!btn)return;
   document.querySelectorAll('#grid-size-btns .btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  gridCols=+btn.dataset.size;
-  buildGrid(gridCols);
+  btn.classList.add('active');gridCols=+btn.dataset.size;buildGrid(gridCols);
 });
 
 // ── Fetch ─────────────────────────────────────────────────────────────────────
@@ -475,7 +483,6 @@ async function fetchPair(pairId){
 }
 
 async function fetchAll(){
-  console.log('[FX] refresh',new Date().toTimeString().slice(0,8));
   await Promise.allSettled(ALL_PAIRS.map(p=>fetchPair(p.id)));
   let latest=null;
   ALL_PAIRS.forEach(p=>{const d=rawData[p.id];if(d?.length){const ld=new Date(d[d.length-1].date);if(!latest||ld>latest)latest=ld;}});
@@ -483,7 +490,6 @@ async function fetchAll(){
   cellSettings.forEach((_,idx)=>renderCell(idx));
 }
 
-// ── Clock + countdown ─────────────────────────────────────────────────────────
 setInterval(()=>{
   document.getElementById('clock').textContent=new Date().toLocaleTimeString('da-DK',{hour12:false});
   countdown--;
@@ -492,7 +498,6 @@ setInterval(()=>{
   document.getElementById('cd').textContent=`${m}:${s}`;
 },1000);
 
-// ── Boot ──────────────────────────────────────────────────────────────────────
 buildGrid(3);
 fetchAll();
 </script>
