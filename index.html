@@ -8,11 +8,19 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-:root{--bg:#0c0c0f;--surface:#111116;--surface2:#16161c;--border:#222228;--border2:#2a2a32;--text:#f0f0f5;--muted:#555560;--subtle:#38383f;--up:#22c55e;--down:#ef4444;--accent:#6366f1}
+:root{
+  --bg:#0c0c0f;--surface:#111116;--surface2:#16161c;
+  --border:#222228;--border2:#2a2a32;
+  --text:#f0f0f5;--muted:#555560;--subtle:#38383f;
+  --axis:#8888a0;  /* brighter axis text */
+  --up:#22c55e;--down:#ef4444;--accent:#6366f1;
+  --ma100:#f59e0b;--ma200:#38bdf8;
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif}
 body{display:flex;flex-direction:column}
 
+/* HEADER */
 header{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:48px;background:var(--surface);border-bottom:1px solid var(--border)}
 .brand{font-size:17px;font-weight:700;letter-spacing:-.02em}
 .brand span{font-weight:300;color:var(--muted);font-size:12px;margin-left:8px;letter-spacing:.05em}
@@ -22,6 +30,7 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 #clock{font-size:13px;font-weight:500;color:var(--text);font-variant-numeric:tabular-nums}
 
+/* CONTROLS */
 .controls{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:5px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap}
 .ctrl-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-right:2px;white-space:nowrap}
 .ctrl-sep{width:1px;height:18px;background:var(--border2);margin:0 8px;flex-shrink:0}
@@ -30,8 +39,10 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .btn:hover{color:var(--text);border-color:var(--subtle)}
 .btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
+/* GRID */
 .grid-wrap{flex:1;min-height:0;display:grid;gap:1px;background:var(--border)}
 
+/* CELL */
 .cell{background:var(--surface);display:flex;flex-direction:column;padding:10px 12px 6px;position:relative;overflow:hidden;min-height:0}
 .cell-top{flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px}
 .pair-name{font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--text)}
@@ -40,9 +51,27 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .price{font-size:15px;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums}
 .chg{font-size:10px;font-weight:500;margin-top:2px;font-variant-numeric:tabular-nums;color:var(--muted)}
 .chg.up{color:var(--up)}.chg.down{color:var(--down)}
+
+/* Chart area with MA buttons overlaid top-right */
 .cwrap{flex:1;min-height:0;position:relative}
 .cwrap canvas{width:100%!important;height:100%!important;display:block}
 
+.ma-btns{
+  position:absolute;top:4px;right:48px; /* offset from y-axis */
+  display:flex;gap:3px;z-index:10;
+}
+.ma-btn{
+  font-family:'Inter',sans-serif;font-size:8px;font-weight:700;
+  padding:2px 5px;border-radius:4px;cursor:pointer;
+  border:1px solid var(--border2);background:rgba(17,17,22,.85);
+  color:var(--muted);letter-spacing:.04em;transition:all .12s;
+  backdrop-filter:blur(4px);
+}
+.ma-btn:hover{color:var(--text);border-color:var(--subtle)}
+.ma-btn.active-100{background:rgba(245,158,11,.15);border-color:var(--ma100);color:var(--ma100)}
+.ma-btn.active-200{background:rgba(56,189,248,.15);border-color:var(--ma200);color:var(--ma200)}
+
+/* CELL BOTTOM CONTROLS */
 .cell-controls{flex-shrink:0;display:flex;align-items:center;gap:3px;margin-top:4px;flex-wrap:wrap}
 .cell-sel{font-family:'Inter',sans-serif;font-size:9px;font-weight:600;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);border-radius:4px;padding:2px 4px;cursor:pointer;text-transform:uppercase;letter-spacing:.04em;appearance:none;-webkit-appearance:none}
 .cell-sel:focus{outline:none;border-color:var(--accent)}
@@ -51,6 +80,7 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .cell-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .cell-sep{width:1px;height:12px;background:var(--border2);margin:0 2px;flex-shrink:0}
 
+/* OVERLAY */
 .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(12,12,15,.93);gap:8px;padding:12px;text-align:center}
 .overlay.gone{display:none}
 .spin{width:18px;height:18px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
@@ -58,11 +88,14 @@ header{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
 .ov-lbl{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
 .ov-err{font-size:9px;color:var(--down);max-width:160px;line-height:1.6}
 
+/* FOOTER */
 footer{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:28px;background:var(--surface);border-top:1px solid var(--border);font-size:10px;color:var(--muted)}
 .leg{display:flex;gap:12px}
 .leg span{display:flex;align-items:center;gap:4px;font-weight:500}
 .lb{width:8px;height:8px;border-radius:2px}
 .lb.up{background:var(--up)}.lb.down{background:var(--down)}
+.lb.ma100{background:var(--ma100);border-radius:50%}
+.lb.ma200{background:var(--ma200);border-radius:50%}
 </style>
 </head>
 <body>
@@ -91,6 +124,8 @@ footer{flex-shrink:0;display:flex;align-items:center;justify-content:space-betwe
   <div class="leg">
     <span><div class="lb up"></div>Bullish</span>
     <span><div class="lb down"></div>Bearish</span>
+    <span><div class="lb ma100"></div>MA 100</span>
+    <span><div class="lb ma200"></div>MA 200</span>
   </div>
   <div id="data-ts">Yahoo Finance · Updated every 10 min</div>
 </footer>
@@ -104,7 +139,6 @@ const ALL_PAIRS=[
   {id:'AUDDKK',label:'AUD/DKK'},
   {id:'CADDKK',label:'CAD/DKK'},
 ];
-
 const DEFAULT_PAIRS={
   2:['EURDKK','USDDKK','SEKDKK','GBPDKK'],
   3:['EURDKK','USDDKK','SEKDKK','GBPDKK','AUDDKK','CADDKK'],
@@ -118,6 +152,20 @@ const charts={};
 let countdown=REFRESH_SEC;
 let gridCols=3;
 let cellSettings=[];
+
+// ── Moving average helper ─────────────────────────────────────────────────────
+// MA is calculated on DAILY data then mapped to candle timestamps
+function calcMA(dailyData, period) {
+  // Returns array of {x: timestamp_ms, y: value} for each daily point
+  const result = [];
+  for (let i = 0; i < dailyData.length; i++) {
+    if (i < period - 1) { result.push(null); continue; }
+    let sum = 0;
+    for (let j = i - period + 1; j <= i; j++) sum += dailyData[j].c;
+    result.push({ x: new Date(dailyData[i].date).getTime(), y: sum / period });
+  }
+  return result.filter(p => p !== null);
+}
 
 // ── Candlestick plugin ────────────────────────────────────────────────────────
 Chart.register({
@@ -167,39 +215,89 @@ function trimMonths(candles,months){
   return candles.filter(c=>c.x>=cut.getTime());
 }
 
+function trimMA(maPoints, months) {
+  const cut=new Date();cut.setMonth(cut.getMonth()-months);
+  return maPoints.filter(p=>p.x>=cut.getTime());
+}
+
 // ── Chart ─────────────────────────────────────────────────────────────────────
 function destroyChart(key){if(charts[key]){charts[key].destroy();delete charts[key];}}
 
-function applyChart(key,candles){
+function applyChart(key, candles, ma100Points, ma200Points){
   const canvas=document.getElementById(`cv-${key}`);if(!canvas)return;
-  const minY=Math.min(...candles.map(c=>c.l)),maxY=Math.max(...candles.map(c=>c.h));
+  const minY=Math.min(...candles.map(c=>c.l));
+  const maxY=Math.max(...candles.map(c=>c.h));
   const pad=Math.max((maxY-minY)*0.08,0.005);
+
+  const datasets=[{
+    data:candles,backgroundColor:'transparent',borderColor:'transparent',
+    barPercentage:.8,categoryPercentage:1,order:2,
+  }];
+
+  if(ma100Points?.length){
+    datasets.push({
+      type:'line',data:ma100Points,parsing:false,
+      borderColor:'#f59e0b',borderWidth:1.5,pointRadius:0,
+      tension:0.3,order:1,label:'MA100',
+    });
+  }
+  if(ma200Points?.length){
+    datasets.push({
+      type:'line',data:ma200Points,parsing:false,
+      borderColor:'#38bdf8',borderWidth:1.5,pointRadius:0,
+      tension:0.3,order:0,label:'MA200',
+    });
+  }
+
   if(charts[key]){
-    charts[key].data.datasets[0].data=candles;
-    charts[key].options.scales.y.min=minY-pad;charts[key].options.scales.y.max=maxY+pad;
+    charts[key].data.datasets=datasets;
+    charts[key].options.scales.y.min=minY-pad;
+    charts[key].options.scales.y.max=maxY+pad;
     charts[key].update('none');return;
   }
+
   charts[key]=new Chart(canvas.getContext('2d'),{
     type:'bar',
-    data:{datasets:[{data:candles,backgroundColor:'transparent',borderColor:'transparent',barPercentage:.8,categoryPercentage:1}]},
+    data:{datasets},
     options:{
       responsive:true,maintainAspectRatio:false,animation:false,parsing:false,
       layout:{padding:{top:4,bottom:2,left:0,right:4}},
       scales:{
-        x:{type:'time',time:{unit:'month',displayFormats:{month:'MMM yy'},tooltipFormat:'dd MMM yyyy'},
-          grid:{color:'#1a1a22'},border:{color:'#1a1a22'},
-          ticks:{color:'#444450',font:{family:'Inter',size:9},maxRotation:0,maxTicksLimit:7}},
-        y:{position:'right',min:minY-pad,max:maxY+pad,
-          grid:{color:'#1a1a22'},border:{color:'#1a1a22'},
-          ticks:{color:'#444450',font:{family:'Inter',size:9},maxTicksLimit:5,callback:v=>v.toFixed(2)}}
+        x:{
+          type:'time',
+          time:{unit:'month',displayFormats:{month:'MMM yy'},tooltipFormat:'dd MMM yyyy'},
+          grid:{color:'#1e1e28'},border:{color:'#2a2a38'},
+          ticks:{
+            color:'#8888a0',   /* brighter axis labels */
+            font:{family:'Inter',size:9,weight:'500'},
+            maxRotation:0,maxTicksLimit:7,
+          }
+        },
+        y:{
+          position:'right',min:minY-pad,max:maxY+pad,
+          grid:{color:'#1e1e28'},border:{color:'#2a2a38'},
+          ticks:{
+            color:'#8888a0',   /* brighter axis labels */
+            font:{family:'Inter',size:9,weight:'500'},
+            maxTicksLimit:5,callback:v=>v.toFixed(2),
+          }
+        }
       },
       plugins:{
         legend:{display:false},
         tooltip:{
           backgroundColor:'#111116',borderColor:'#222228',borderWidth:1,
-          titleColor:'#f0f0f5',bodyColor:'#555560',
-          titleFont:{family:'Inter',size:11,weight:'600'},bodyFont:{family:'Inter',size:10},
-          callbacks:{label:ctx=>{const d=ctx.raw;return[`O: ${d.o.toFixed(4)}`,`H: ${d.h.toFixed(4)}`,`L: ${d.l.toFixed(4)}`,`C: ${d.c.toFixed(4)}`];}}
+          titleColor:'#f0f0f5',bodyColor:'#8888a0',
+          titleFont:{family:'Inter',size:11,weight:'600'},
+          bodyFont:{family:'Inter',size:10},
+          callbacks:{
+            label:ctx=>{
+              if(ctx.dataset.label==='MA100') return `MA100: ${ctx.parsed.y.toFixed(4)}`;
+              if(ctx.dataset.label==='MA200') return `MA200: ${ctx.parsed.y.toFixed(4)}`;
+              const d=ctx.raw;
+              return[`O: ${d.o.toFixed(4)}`,`H: ${d.h.toFixed(4)}`,`L: ${d.l.toFixed(4)}`,`C: ${d.c.toFixed(4)}`];
+            }
+          }
         }
       }
     }
@@ -211,28 +309,40 @@ function renderCell(idx){
   const s=cellSettings[idx];if(!s)return;
   const key=`cell-${idx}`;
   const pair=ALL_PAIRS.find(p=>p.id===s.pairId)||ALL_PAIRS[0];
-  const nameEl=document.getElementById(`name-${key}`);
-  if(nameEl)nameEl.textContent=pair.label;
-  const rangeLabel=s.range<12?`${s.range}M`:`${Math.round(s.range/12)}Y`;
-  const candleLabel=s.candle<=1?'Daily':s.candle<=7?'Weekly':'Monthly';
-  const subEl=document.getElementById(`sub-${key}`);
-  if(subEl)subEl.textContent=`${rangeLabel} · ${candleLabel}`;
 
-  const daily=rawData[s.pairId];
-  if(!daily)return;
+  // Update labels
+  const nameEl=document.getElementById(`name-${key}`);if(nameEl)nameEl.textContent=pair.label;
+  const rl=s.range<12?`${s.range}M`:`${Math.round(s.range/12)}Y`;
+  const cl=s.candle<=1?'Daily':s.candle<=7?'Weekly':'Monthly';
+  const subEl=document.getElementById(`sub-${key}`);if(subEl)subEl.textContent=`${rl} · ${cl}`;
+
+  const daily=rawData[s.pairId];if(!daily)return;
 
   try{
     const candles=trimMonths(toCandles(daily,s.candle),s.range);
     if(!candles.length)throw new Error('No data in this range');
+
+    // Price + change
     const last=candles[candles.length-1],prev=candles.length>1?candles[candles.length-2]:null;
-    const priceEl=document.getElementById(`price-${key}`);
-    if(priceEl)priceEl.textContent=last.c.toFixed(4);
+    const priceEl=document.getElementById(`price-${key}`);if(priceEl)priceEl.textContent=last.c.toFixed(4);
     if(prev){
       const el=document.getElementById(`chg-${key}`);
       const d=last.c-prev.c,pct=(d/prev.c*100).toFixed(2),sg=d>=0?'+':'';
       if(el){el.textContent=`${sg}${d.toFixed(4)}  (${sg}${pct}%)`;el.className=`chg ${d>=0?'up':'down'}`;}
     }
-    applyChart(key,candles);
+
+    // Moving averages — calculated on full daily data, then trimmed to view range
+    let ma100=null,ma200=null;
+    if(s.ma100){
+      const pts=calcMA(daily,100);
+      ma100=trimMA(pts,s.range);
+    }
+    if(s.ma200){
+      const pts=calcMA(daily,200);
+      ma200=trimMA(pts,s.range);
+    }
+
+    applyChart(key,candles,ma100,ma200);
     const ov=document.getElementById(`ov-${key}`);if(ov)ov.classList.add('gone');
   }catch(e){
     const ov=document.getElementById(`ov-${key}`);
@@ -249,6 +359,8 @@ function buildGrid(cols){
     pairId:layout[i%layout.length]||ALL_PAIRS[0].id,
     range: i<cols?36:3,
     candle:i<cols?7:1,
+    ma100: false,
+    ma200: false,
   }));
 
   const grid=document.getElementById('grid');
@@ -262,6 +374,7 @@ function buildGrid(cols){
     const opts=ALL_PAIRS.map(p=>`<option value="${p.id}"${p.id===s.pairId?' selected':''}>${p.label}</option>`).join('');
     const rl=s.range<12?`${s.range}M`:`${Math.round(s.range/12)}Y`;
     const cl=s.candle<=1?'Daily':s.candle<=7?'Weekly':'Monthly';
+
     const cell=document.createElement('div');
     cell.className='cell';
     cell.innerHTML=`
@@ -277,16 +390,20 @@ function buildGrid(cols){
       </div>
       <div class="cwrap">
         <canvas id="cv-${key}"></canvas>
+        <div class="ma-btns">
+          <button class="ma-btn" data-idx="${idx}" data-ma="100">MA100</button>
+          <button class="ma-btn" data-idx="${idx}" data-ma="200">MA200</button>
+        </div>
         <div class="overlay" id="ov-${key}"><div class="spin"></div><div class="ov-lbl">Loading…</div></div>
       </div>
       <div class="cell-controls">
         <select class="cell-sel" data-idx="${idx}" data-type="pair">${opts}</select>
         <div class="cell-sep"></div>
-        <button class="cell-btn${s.range===1?' active':''}"  data-idx="${idx}" data-type="range"  data-val="1">1M</button>
-        <button class="cell-btn${s.range===3?' active':''}"  data-idx="${idx}" data-type="range"  data-val="3">3M</button>
-        <button class="cell-btn${s.range===6?' active':''}"  data-idx="${idx}" data-type="range"  data-val="6">6M</button>
-        <button class="cell-btn${s.range===36?' active':''}" data-idx="${idx}" data-type="range"  data-val="36">3Y</button>
-        <button class="cell-btn${s.range===60?' active':''}" data-idx="${idx}" data-type="range"  data-val="60">5Y</button>
+        <button class="cell-btn${s.range===1?' active':''}"  data-idx="${idx}" data-type="range" data-val="1">1M</button>
+        <button class="cell-btn${s.range===3?' active':''}"  data-idx="${idx}" data-type="range" data-val="3">3M</button>
+        <button class="cell-btn${s.range===6?' active':''}"  data-idx="${idx}" data-type="range" data-val="6">6M</button>
+        <button class="cell-btn${s.range===36?' active':''}" data-idx="${idx}" data-type="range" data-val="36">3Y</button>
+        <button class="cell-btn${s.range===60?' active':''}" data-idx="${idx}" data-type="range" data-val="60">5Y</button>
         <div class="cell-sep"></div>
         <button class="cell-btn${s.candle===1?' active':''}"  data-idx="${idx}" data-type="candle" data-val="1">D</button>
         <button class="cell-btn${s.candle===7?' active':''}"  data-idx="${idx}" data-type="candle" data-val="7">W</button>
@@ -299,6 +416,7 @@ function buildGrid(cols){
 }
 
 // ── Events ────────────────────────────────────────────────────────────────────
+// Pair selector
 document.getElementById('grid').addEventListener('change',e=>{
   if(!e.target.matches('.cell-sel[data-type="pair"]'))return;
   const idx=+e.target.dataset.idx,key=`cell-${idx}`;
@@ -308,7 +426,25 @@ document.getElementById('grid').addEventListener('change',e=>{
   else renderCell(idx);
 });
 
+// Range / candle buttons
 document.getElementById('grid').addEventListener('click',e=>{
+  // MA buttons
+  const maBtn=e.target.closest('.ma-btn');
+  if(maBtn){
+    const idx=+maBtn.dataset.idx,ma=+maBtn.dataset.ma,key=`cell-${idx}`;
+    if(ma===100){
+      cellSettings[idx].ma100=!cellSettings[idx].ma100;
+      maBtn.classList.toggle('active-100',cellSettings[idx].ma100);
+    } else {
+      cellSettings[idx].ma200=!cellSettings[idx].ma200;
+      maBtn.classList.toggle('active-200',cellSettings[idx].ma200);
+    }
+    destroyChart(key);
+    renderCell(idx);
+    return;
+  }
+
+  // Range / candle
   const btn=e.target.closest('.cell-btn');if(!btn)return;
   const idx=+btn.dataset.idx,type=btn.dataset.type,val=+btn.dataset.val,key=`cell-${idx}`;
   btn.closest('.cell-controls').querySelectorAll(`.cell-btn[data-type="${type}"]`).forEach(b=>b.classList.remove('active'));
@@ -318,6 +454,7 @@ document.getElementById('grid').addEventListener('click',e=>{
   renderCell(idx);
 });
 
+// Grid size
 document.getElementById('grid-size-btns').addEventListener('click',e=>{
   const btn=e.target.closest('.btn');if(!btn)return;
   document.querySelectorAll('#grid-size-btns .btn').forEach(b=>b.classList.remove('active'));
@@ -346,6 +483,7 @@ async function fetchAll(){
   cellSettings.forEach((_,idx)=>renderCell(idx));
 }
 
+// ── Clock + countdown ─────────────────────────────────────────────────────────
 setInterval(()=>{
   document.getElementById('clock').textContent=new Date().toLocaleTimeString('da-DK',{hour12:false});
   countdown--;
@@ -354,6 +492,7 @@ setInterval(()=>{
   document.getElementById('cd').textContent=`${m}:${s}`;
 },1000);
 
+// ── Boot ──────────────────────────────────────────────────────────────────────
 buildGrid(3);
 fetchAll();
 </script>
