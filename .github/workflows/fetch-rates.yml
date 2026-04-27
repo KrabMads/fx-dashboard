@@ -13,20 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch EUR/DKK
+      - name: Fetch all pairs
         run: |
-          curl -s "https://query1.finance.yahoo.com/v8/finance/chart/EURDKK=X?interval=1d&range=5y" \
-            -H "User-Agent: Mozilla/5.0" -o data/EURDKK.json
-
-      - name: Fetch USD/DKK
-        run: |
-          curl -s "https://query1.finance.yahoo.com/v8/finance/chart/USDDKK=X?interval=1d&range=5y" \
-            -H "User-Agent: Mozilla/5.0" -o data/USDDKK.json
-
-      - name: Fetch SEK/DKK
-        run: |
-          curl -s "https://query1.finance.yahoo.com/v8/finance/chart/SEKDKK=X?interval=1d&range=5y" \
-            -H "User-Agent: Mozilla/5.0" -o data/SEKDKK.json
+          for PAIR in EURDKK GBPDKK USDDKK SEKDKK AUDDKK CADDKK; do
+            curl -s "https://query1.finance.yahoo.com/v8/finance/chart/${PAIR}=X?interval=1d&range=5y" \
+              -H "User-Agent: Mozilla/5.0" -o data/${PAIR}.json
+            echo "Fetched ${PAIR}"
+          done
 
       - name: Commit and push
         run: |
