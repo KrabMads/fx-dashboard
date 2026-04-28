@@ -272,18 +272,33 @@ Chart.register({
 
 // ── Data helpers ──────────────────────────────────────────────────────────────
 function parseYahoo(json){
-  const r=json.chart.result[0],q=r.indicators.quote[0];
-  return r.timestamp.map((t,i)=>({
-    ts: t*1000,  // raw ms timestamp — no timezone conversion
-    date:new Date(t*1000).toISOString().split('T')[0],
-    o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i],
-  })).filter(d=>d.o!=null&&d.c!=null&&d.h!=null&&d.l!=null);
+  const r=json.chart.result[0];
+  const q=r.indicators.quote[0];
+  // Yahoo timestamps are in exchange local timezone (gmtoffset seconds).
+  // Apply offset so dates match what Yahoo Finance website shows.
+  const gmtOffset=(r.meta.gmtoffset||0)*1000;
+
+  const raw=r.timestamp.map((t,i)=>({
+    ts:t*1000+gmtOffset,
+    h:q.high[i],
+    l:q.low[i],
+    c:q.close[i],
+  })).filter(d=>d.h!=null&&d.l!=null&&d.c!=null);
+
+  // Synthetic open: previous day close = today open.
+  // FX never truly closes so this is the correct approach.
+  // Yahoo open values are unreliable for FX pairs.
+  return raw.map((d,i)=>({
+    ts:d.ts,
+    h:d.h,
+    l:d.l,
+    c:d.c,
+    o:i===0?d.c:raw[i-1].c,
+  }));
 }
 
 function toCandles(daily,nDays){
-  // Daily: use raw timestamp directly — no bucketing, no re-aggregation
-  if(nDays<=1) return daily.map(d=>({x:d.ts, o:d.o, h:d.h, l:d.l, c:d.c}));
-  // Weekly/monthly: bucket by nDays and aggregate
+  if(nDays<=1) return daily.map(d=>({x:d.ts,o:d.o,h:d.h,l:d.l,c:d.c}));
   const buckets={};
   daily.forEach(d=>{
     const slot=Math.floor(d.ts/(nDays*86400000))*(nDays*86400000);
