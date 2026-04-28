@@ -200,7 +200,7 @@ function calcMA(dailyData,period){
     if(i<period-1)continue;
     let sum=0;
     for(let j=i-period+1;j<=i;j++)sum+=dailyData[j].c;
-    result.push({x:new Date(dailyData[i].date).getTime(),y:sum/period});
+    result.push({x:dailyData[i].ts, y:sum/period});
   }
   return result;
 }
@@ -274,16 +274,19 @@ Chart.register({
 function parseYahoo(json){
   const r=json.chart.result[0],q=r.indicators.quote[0];
   return r.timestamp.map((t,i)=>({
+    ts: t*1000,  // raw ms timestamp — no timezone conversion
     date:new Date(t*1000).toISOString().split('T')[0],
     o:q.open[i],h:q.high[i],l:q.low[i],c:q.close[i],
   })).filter(d=>d.o!=null&&d.c!=null&&d.h!=null&&d.l!=null);
 }
 
 function toCandles(daily,nDays){
-  if(nDays<=1)return daily.map(d=>({x:new Date(d.date).getTime(),o:d.o,h:d.h,l:d.l,c:d.c}));
+  // Daily: use raw timestamp directly — no bucketing, no re-aggregation
+  if(nDays<=1) return daily.map(d=>({x:d.ts, o:d.o, h:d.h, l:d.l, c:d.c}));
+  // Weekly/monthly: bucket by nDays and aggregate
   const buckets={};
   daily.forEach(d=>{
-    const ms=new Date(d.date).getTime(),slot=Math.floor(ms/(nDays*86400000))*(nDays*86400000);
+    const slot=Math.floor(d.ts/(nDays*86400000))*(nDays*86400000);
     if(!buckets[slot])buckets[slot]=[];buckets[slot].push(d);
   });
   return Object.keys(buckets).sort((a,b)=>a-b).map(slot=>{
@@ -541,7 +544,7 @@ async function fetchPair(pairId){
 async function fetchAll(){
   await Promise.allSettled(ALL_PAIRS.map(p=>fetchPair(p.id)));
   let latest=null;
-  ALL_PAIRS.forEach(p=>{const d=rawData[p.id];if(d?.length){const ld=new Date(d[d.length-1].date);if(!latest||ld>latest)latest=ld;}});
+  ALL_PAIRS.forEach(p=>{const d=rawData[p.id];if(d?.length){const ld=new Date(d[d.length-1].ts);if(!latest||ld>latest)latest=ld;}});
   if(latest)document.getElementById('data-ts').textContent=`Yahoo Finance · Last data: ${latest.toLocaleDateString('da-DK',{day:'2-digit',month:'short',year:'numeric'})}`;
   cellSettings.forEach((_,idx)=>renderCell(idx));
 }
