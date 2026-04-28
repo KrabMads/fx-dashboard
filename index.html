@@ -194,13 +194,15 @@ function xAxisConfig(rangeMonths) {
 }
 
 // ── MA helper ─────────────────────────────────────────────────────────────────
-function calcMA(dailyData,period){
+// MA is calculated on the candles array — so MA100 means
+// 100 candles of whatever timeframe is selected (daily/weekly/monthly)
+function calcMA(candles,period){
   const result=[];
-  for(let i=0;i<dailyData.length;i++){
+  for(let i=0;i<candles.length;i++){
     if(i<period-1)continue;
     let sum=0;
-    for(let j=i-period+1;j<=i;j++)sum+=dailyData[j].c;
-    result.push({x:dailyData[i].ts, y:sum/period});
+    for(let j=i-period+1;j<=i;j++)sum+=candles[j].c;
+    result.push({x:candles[i].x, y:sum/period});
   }
   return result;
 }
@@ -432,8 +434,9 @@ function renderCell(idx){
       const d=last.c-prev.c,pct=(d/prev.c*100).toFixed(2),sg=d>=0?'+':'';
       if(el){el.textContent=`${sg}${d.toFixed(4)}  (${sg}${pct}%)`;el.className=`chg ${d>=0?'up':'down'}`;}
     }
-    const ma100=s.ma100?trimMA(calcMA(daily,100),s.range):null;
-    const ma200=s.ma200?trimMA(calcMA(daily,200),s.range):null;
+    // MA calculated on candles — matches selected timeframe (D/W/M)
+    const ma100=s.ma100?calcMA(candles,100):null;
+    const ma200=s.ma200?calcMA(candles,200):null;
     applyChart(key,candles,ma100,ma200,s.range);
     const ov=document.getElementById(`ov-${key}`);if(ov)ov.classList.add('gone');
   }catch(e){
